@@ -6,7 +6,7 @@ public abstract class Controller {
 		
 		WARMUP,QUALIFYING,RACE,UNKNOWN;
 		
-		static Stage fromInt(int value)
+		public static Stage fromInt(int value)
 		{
 			switch (value) {
 			case 0:
