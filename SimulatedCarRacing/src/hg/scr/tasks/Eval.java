@@ -1,7 +1,6 @@
-/**
- * 
- */
-package hg;
+package hg.scr.tasks;
+
+
 
 
 
@@ -17,7 +16,7 @@ import scr.SocketHandler;
  * @author Daniele Loiacono
  * 
  */
-public class Client {
+public class Eval {
 
 	private static int UDP_TIMEOUT = 10000;
 	private static int port;
@@ -41,8 +40,8 @@ public class Client {
 	 *            <stage:N> is used to set the current stage: 0 is WARMUP, 1 is QUALIFYING, 2 is RACE, others value means UNKNOWN (default is UNKNOWN)
 	 *            <trackName:name> is used to set the name of current track
 	 */
-	public static void main(String[] args) {
-		parseParameters(args);
+	public static double eval() {
+		parseParameters(null);
 		SocketHandler mySocket = new SocketHandler(host, port, verbose);
 		String inMsg;
 
@@ -61,7 +60,7 @@ public class Client {
 		
 		long curEpisode = 0;
 		boolean shutdownOccurred = false;
-		do {
+//		do {
 
 			/*
 			 * Client identification
@@ -107,16 +106,26 @@ public class Client {
 					if (currStep < maxSteps || maxSteps == 0)
 						action = driver.control(new MessageBasedSensorModel(
 								inMsg));
-					else
-						action.restartRace = true;
+					else{
+						System.out.println("The evolved driver received "+(new MessageBasedSensorModel(inMsg)).getDamage()+" points of damage by the other car.");
+						System.out.println("The evolved driver received "+(new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine()+" points of damage by the other car.");
+//						action.restartRace = true;
+//						
+//						driver.shutdown();
+//						mySocket.close();
+						
+						
+//						return (new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine();
+					}
+						
 
 					currStep++;
 					mySocket.send(action.toString());
 				} else
 					System.out.println("Server did not respond within the timeout");
 			}
-
-		} while (++curEpisode < maxEpisodes && !shutdownOccurred);
+			
+//		} while (++curEpisode < maxEpisodes && !shutdownOccurred);
 
 		/*
 		 * Shutdown the controller
@@ -125,6 +134,7 @@ public class Client {
 		mySocket.close();
 		System.out.println("Client shutdown.");
 		System.out.println("Bye, bye!");
+		return (new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine();
 
 	}
 
@@ -136,11 +146,12 @@ public class Client {
 		host = "localhost";
 		clientId = "SCR";
 		verbose = false;
-		maxEpisodes = 2;
-		maxSteps = 0;
+//		maxEpisodes = 3;
+		maxSteps = 1000;
 		stage = Stage.UNKNOWN;
 		trackName = "unknown";
 		
+		/*
 		for (int i = 1; i < args.length; i++) {
 			StringTokenizer st = new StringTokenizer(args[i], ":");
 			String entity = st.nextToken();
@@ -190,7 +201,7 @@ public class Client {
 					System.exit(0);
 				}
 			}
-		}
+		}*/
 	}
 
 	private static Controller load(String name) {

@@ -17,7 +17,7 @@ import scr.SocketHandler;
  * @author Daniele Loiacono
  * 
  */
-public class Client {
+public class Eval {
 
 	private static int UDP_TIMEOUT = 10000;
 	private static int port;
@@ -107,15 +107,19 @@ public class Client {
 					if (currStep < maxSteps || maxSteps == 0)
 						action = driver.control(new MessageBasedSensorModel(
 								inMsg));
-					else
+					else{
+						System.out.println("The evolved driver received "+(new MessageBasedSensorModel(inMsg)).getDamage()+" points of damage by the other car.");
+						System.out.println("The evolved driver received "+(new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine()+" points of damage by the other car.");
 						action.restartRace = true;
+					}
+						
 
 					currStep++;
 					mySocket.send(action.toString());
 				} else
 					System.out.println("Server did not respond within the timeout");
 			}
-
+			
 		} while (++curEpisode < maxEpisodes && !shutdownOccurred);
 
 		/*
@@ -136,8 +140,8 @@ public class Client {
 		host = "localhost";
 		clientId = "SCR";
 		verbose = false;
-		maxEpisodes = 2;
-		maxSteps = 0;
+		maxEpisodes = 3;
+		maxSteps = 1000;
 		stage = Stage.UNKNOWN;
 		trackName = "unknown";
 		
