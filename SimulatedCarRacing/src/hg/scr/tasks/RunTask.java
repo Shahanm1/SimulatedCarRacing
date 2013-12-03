@@ -160,7 +160,7 @@ public class RunTask {
 		clientId = "SCR";
 		verbose = false;
 //		maxEpisodes = 3;
-		maxSteps = 1000;
+		maxSteps = 500;
 		stage = Stage.UNKNOWN;
 		trackName = "unknown";
 		

@@ -51,7 +51,7 @@ import scr.Controller;
 
 public class Evolve
 {
-final static int generations = 100;
+final static int generations = 1000;
 final static int populationSize = 100;
 
 public static void main(String[] args)
