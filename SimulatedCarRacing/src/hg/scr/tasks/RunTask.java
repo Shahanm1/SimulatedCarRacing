@@ -4,6 +4,8 @@ package hg.scr.tasks;
 
 
 
+import hg.scr.tools.EvaluationInfo;
+
 import java.util.StringTokenizer;
 
 import scr.Action;
@@ -16,7 +18,7 @@ import scr.SocketHandler;
  * @author Daniele Loiacono
  * 
  */
-public class Eval {
+public class RunTask {
 
 	private static int UDP_TIMEOUT = 10000;
 	private static int port;
@@ -28,6 +30,10 @@ public class Eval {
 	private static Stage stage;
 	private static String trackName;
 
+	private EvaluationInfo evaluationInfo = new EvaluationInfo();
+	String controlName="";
+	
+	private Controller controller;
 	/**
 	 * @param args
 	 *            is used to define all the options of the client.
@@ -40,13 +46,18 @@ public class Eval {
 	 *            <stage:N> is used to set the current stage: 0 is WARMUP, 1 is QUALIFYING, 2 is RACE, others value means UNKNOWN (default is UNKNOWN)
 	 *            <trackName:name> is used to set the name of current track
 	 */
-	public static double eval() {
-		parseParameters(null);
+	public RunTask(Controller controller ,String[] parms){
+		this.controller = controller;
+		parseParameters(parms);
+		
+	}
+	public  void eval() {
+		
 		SocketHandler mySocket = new SocketHandler(host, port, verbose);
 		String inMsg;
 
-		Controller driver = load("scr.SimpleDriver");
-		
+//		Controller driver = load(controlName);
+		Controller driver =controller;
 		driver.setStage(stage);
 		driver.setTrackName(trackName);
 		
@@ -109,7 +120,9 @@ public class Eval {
 					else{
 						System.out.println("The evolved driver received "+(new MessageBasedSensorModel(inMsg)).getDamage()+" points of damage by the other car.");
 						System.out.println("The evolved driver received "+(new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine()+" points of damage by the other car.");
-//						action.restartRace = true;
+						evaluationInfo.damage = (new MessageBasedSensorModel(inMsg)).getDamage();
+						evaluationInfo.distanceFromStartLine = (new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine();
+						action.restartRace = true;
 //						
 //						driver.shutdown();
 //						mySocket.close();
@@ -132,9 +145,9 @@ public class Eval {
 		 */
 		driver.shutdown();
 		mySocket.close();
-		System.out.println("Client shutdown.");
-		System.out.println("Bye, bye!");
-		return (new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine();
+//		System.out.println("Client shutdown.");
+//		System.out.println("Bye, bye!");
+//		return (new MessageBasedSensorModel(inMsg)).getDistanceFromStartLine();
 
 	}
 
@@ -151,7 +164,7 @@ public class Eval {
 		stage = Stage.UNKNOWN;
 		trackName = "unknown";
 		
-		/*
+		
 		for (int i = 1; i < args.length; i++) {
 			StringTokenizer st = new StringTokenizer(args[i], ":");
 			String entity = st.nextToken();
@@ -201,7 +214,7 @@ public class Eval {
 					System.exit(0);
 				}
 			}
-		}*/
+		}
 	}
 
 	private static Controller load(String name) {
@@ -221,4 +234,19 @@ public class Eval {
 		}
 		return controller;
 	}
+	public EvaluationInfo getEvaluationInfo() {
+		return evaluationInfo;
+	}
+	public void setEvaluationInfo(EvaluationInfo evaluationInfo) {
+		this.evaluationInfo = evaluationInfo;
+	}
+	public Controller getController() {
+		return controller;
+	}
+	public void setController(Controller controller) {
+		this.controller = controller;
+	}
+	
+
+	
 }

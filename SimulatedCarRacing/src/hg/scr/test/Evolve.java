@@ -25,13 +25,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hg.scr;
+package hg.scr.test;
 
 
 
 import hg.ai.evolution.Evolvable;
+import hg.scr.ES;
 import hg.scr.agents.SmallMLPAgent;
 import hg.scr.tasks.BasicTask;
+import hg.scr.tasks.LearningTask;
 import hg.scr.tasks.Task;
 
 import java.text.DecimalFormat;
@@ -57,13 +59,11 @@ public static void main(String[] args)
    
     List<Controller> bestAgents = new ArrayList<Controller>();
     DecimalFormat df = new DecimalFormat("0000");
-    for (int difficulty = 0; difficulty < 11; difficulty++)
-    {
-        System.out.println("New Evolve phase with difficulty = " + difficulty + " started.");
-        Evolvable initial = new SmallMLPAgent();
+    
+    Evolvable initial = new SmallMLPAgent();
 
       
-        Task task = new BasicTask();
+        Task task = new LearningTask();
         ES es = new ES(task, initial, populationSize);
 
         for (int gen = 0; gen < generations; gen++)
@@ -83,10 +83,10 @@ public static void main(String[] args)
 //            options.setVisualization(false);
 //                options.setFPS(true);
 //            Easy.save(es.getBests()[0], "evolved.xml");
-            if (result > 4000)
+            if (result > 40000)
                 break; // Go to next difficulty.
         }
-    }
+    
     /*//
     //
     //

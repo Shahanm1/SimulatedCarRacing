@@ -1,0 +1,259 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package champ2009client.automata;
+
+import champ2009client.classifier.ClassifierConstants;
+import champ2009client.evolution.EvolutionConstants;
+import champ2009client.evolution.EvolutionManager;
+import champ2009client.evolution.GeneticCapsule;
+import champ2009client.fuzzy.FuzzyConstants;
+import java.text.DecimalFormat;
+
+/**
+ *
+ * @author Diego
+ */
+public class StateTakeTurn extends State{
+
+    //NON CONFIGURABLES
+    private double _fullBrake;
+    private double _fullAccel;
+    private double _maintainAccel;
+    private double _maintainTurn;
+    private boolean _turn_sense_left;
+        
+    //CONFIGURABLES
+    private double  _brakeOnEdge;
+    private int     _brakeCounter;
+    private int     percLowBrake;
+    
+    public StateTakeTurn(StateManager manager)
+    {
+        _manager                = manager;
+        _turn_sense_left        = false;
+        _fullBrake = 0.0f;
+        _fullAccel = 1.0f;
+        _maintainAccel = 0.5f;
+        _maintainTurn  = 0.0f;
+        
+        //CONFIGURABLES
+        _brakeOnEdge  = 0.4f;
+        percLowBrake = 6;
+        _brakeCounter = 0;
+    }
+    
+    public GeneticCapsule[] getGeneticInfo()
+    {
+        GeneticCapsule[] info = new GeneticCapsule[1];
+        GeneticCapsule c;
+        int i = 0;
+        
+        //desired alpha
+        c = new GeneticCapsule("StateTakeTurn", "_brakeOnEdge");
+        c.setData(new Double(_brakeOnEdge), EvolutionConstants.TYPE_ACCEL);
+        info[i++] = c;
+        
+        return info;
+    }
+
+    
+    public void setGeneticInfo(GeneticCapsule info)
+    {
+        String surname = info.getSurname();
+        if(surname.equals("_brakeOnEdge"))
+        {
+            _brakeOnEdge = ((Double)info.getData()).doubleValue();
+        }   
+        if(EvolutionManager.DEBUG) debugGeneticInfo();
+    }
+    
+    public void debugGeneticInfo() { System.out.println("TAKE TURN: _brakeOnEdge = " + _brakeOnEdge); }
+    
+    public void OnEnter()
+    {
+        _brakeCounter = 0;
+    }
+        
+    
+    public void OnUpdate(double deltaTime)
+    {
+
+        int emergencyRecoverState = manageEmergencies();
+        if(emergencyRecoverState != -1)
+        {
+            _manager.setState(emergencyRecoverState);
+            return;
+        }
+            
+        DecimalFormat myF = new DecimalFormat("0.00f");
+        
+        //INPUT 
+        //////////
+        
+        //CLASSIFIER DATA
+        int currentClass = _manager.getClassifier().getCurrentClass();
+               
+        //FUZZY SYSTEM DATA
+        //int fuzzyAngle      = _manager.getFuzzySystem().getFuzzySensorState(FuzzyConstants.INDEX_ANGLE_SENSOR);
+        //int fuzzyTrackPos   = _manager.getFuzzySystem().getFuzzySensorState(FuzzyConstants.INDEX_TRACKPOS_SENSOR);
+        int fuzzySpeed      = _manager.getFuzzySystem().getFuzzySensorState(FuzzyConstants.INDEX_SPEED_SENSOR);
+        int fuzzyEdge       = _manager.getFuzzySystem().getFuzzySensorState(FuzzyConstants.INDEX_EDGE_SENSOR);
+        //int fuzzyTurn       = _manager.getFuzzySystem().getFuzzySensorState(FuzzyConstants.INDEX_TURN_SENSOR);
+        
+        //RAW sesors data
+        //boolean trackPosLeft = _manager.getSensors().getTrackPosition() > 0.0f;
+        double  angle  = _manager.getSensors().getAngleToTrackAxis();
+        double  carSpeed = _manager.getSensors().getSpeed();
+        double  distRaced = _manager.getSensors().getDistanceRaced();
+        double  tracks[] = _manager.getSensors().getTrackEdgeSensors();
+        
+        double steer = 0.0f;
+        double accel = 0.6f;
+        double prevSteer = _manager.getAction().evol_steering;
+        
+        //Adjust sense of steering
+        //double decrementMult = (trackPosLeft)? -0.0001f : 0.0001f;
+        //double decrementMult = (_turn_sense_left)? -0.1f : 0.1f;
+        
+        //if(fuzzyTrackPos == FuzzyConstants.INDEX_TRACKPOS_CENTERED){
+        
+        if(StateManager.DEBUG) System.out.print("TURN! ANGLE: " + myF.format(angle) + 
+                                ", delta: " + myF.format(deltaTime) +
+                                 ", speed: " + myF.format(carSpeed) +
+                                 ", TO_LEFT: " + _turn_sense_left                                       
+                                   );
+
+        
+        if( _manager.getClassifier().getCurrentClass() == ClassifierConstants.CLASS_STRAIGHT )
+        {
+            _manager.setState(StateConstants.RUN);
+        }
+        
+        int maxTrackIndex = _manager.getMaxTrackValIndex();
+        if(maxTrackIndex != -1)
+            steer = _manager.getClassifier().getSensorAngle(maxTrackIndex) * -1.0f;
+        else
+            steer = 0.0f;
+        
+        
+        boolean edgeFar = (fuzzyEdge == FuzzyConstants.INDEX_EDGE_FAR);
+        
+        String speedTxt = FuzzyConstants.FUZZY_RELATIONS[fuzzySpeed][1];
+        String edgeTxt = FuzzyConstants.FUZZY_RELATIONS[fuzzyEdge][1];
+
+        //This is for ending a recovering from StateEmergency (it goes in reverse)
+        if(carSpeed < 0)
+        {
+            accel = _fullAccel;
+            steer = _maintainTurn;
+        }else
+        {
+
+            switch(fuzzySpeed)
+            {
+                case FuzzyConstants.INDEX_SPEED_SLOW:
+                    accel = _fullAccel;
+                    break;
+
+                case FuzzyConstants.INDEX_SPEED_MEDIUM:
+                    if(fuzzyEdge != FuzzyConstants.INDEX_EDGE_FAR)
+                    {
+                        if((_brakeCounter%10) < percLowBrake) // 6/10
+                        {
+                            //accel = _brakeOnEdge;    
+                            accel = _fullBrake + 0.3f;
+                        }else
+                        {
+                            accel = _maintainAccel;    
+                        }
+                    }
+                    else
+                    {
+                        accel = _fullAccel;
+                    }
+                    break;
+
+                case FuzzyConstants.INDEX_SPEED_FAST:
+                    if(fuzzyEdge == FuzzyConstants.INDEX_EDGE_FAR) accel = _fullAccel;
+                    else if(fuzzyEdge == FuzzyConstants.INDEX_EDGE_CLOSE) accel = _fullBrake;
+                    else if(fuzzyEdge == FuzzyConstants.INDEX_EDGE_VERY_CLOSE) accel = _maintainAccel; //GAS FOR STEERING (near 0 means NO steer!!)
+                    else accel = _maintainAccel;
+                    break;                
+
+                case FuzzyConstants.INDEX_SPEED_VERY_FAST:
+                    if(fuzzyEdge == FuzzyConstants.INDEX_EDGE_FAR) accel = _fullAccel;
+                    else if(fuzzyEdge == FuzzyConstants.INDEX_EDGE_CLOSE) accel = _brakeOnEdge / 2.0f;
+                    else if(fuzzyEdge == FuzzyConstants.INDEX_EDGE_VERY_CLOSE) accel = _maintainAccel; //GAS FOR STEERING (near 0 means NO steer!!)
+                    else accel = _maintainAccel;
+
+                    break;
+                    
+                default: //-1, no set selected
+                    accel = 0.75f;
+            }
+        }
+        
+        
+        if(_manager.getSensors().getDamage() > 8000)
+        {
+            if(carSpeed > 180.0f)
+            {
+                accel = 0.5f;
+            }
+        }
+        
+        
+        //Go to the side of the track
+        if(StateManager.DEBUG) System.out.print(", SPEED: " + speedTxt);
+        if(StateManager.DEBUG) System.out.print(", EDGE: " + edgeTxt);
+        if(StateManager.DEBUG) System.out.print(", ST: " + myF.format(steer));
+        
+        /*
+        if((carSpeed > _maxSpeed) && (accel > 0.5f))
+        {
+            accel = 0.5f;
+            if(StateManager.DEBUG) System.out.println(", AC*: " + myF.format(accel));
+        }else
+        {
+            if(StateManager.DEBUG) System.out.println(", AC: " + myF.format(accel));
+        } */  
+        if(StateManager.DEBUG) System.out.println(", AC: " + myF.format(accel));
+        
+        _manager.getAction().evol_steering = (float)steer;
+        _manager.getAction().evol_acceleration = (float)accel;
+                
+        
+        if(currentClass == ClassifierConstants.CLASS_STRAIGHT)
+        {
+            _manager.setState(StateConstants.RUN);
+        }
+        
+        /*
+        if(currentClass == ClassifierConstants.CLASS_PRE_TURN)
+        {
+            _manager.setState(StateConstants.PREPARE_TURN);
+        }
+        */
+//        System.out.println("CLASE: " + currentClass  + 
+//                " (last: " + _manager.getClassifier().getLastClass() + ")");
+        
+        /*DecimalFormat myF2 = new DecimalFormat("00");
+        for(int i = 0; i < 19; i++)
+        {
+            System.out.print(" " + myF2.format(_manager.getSensors().getTrackEdgeSensors()[i]));
+        }
+        System.out.println();*/
+        
+    }
+    
+    
+    
+    public void OnExit()
+    {
+        
+    }
+    
+}

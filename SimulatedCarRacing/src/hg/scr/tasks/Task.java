@@ -42,7 +42,8 @@ import scr.Controller;
 
 public interface Task
 {
-public double evaluate(final Controller controller);
+	public int evaluate(String controlerName);
+public int evaluate(final Controller controller);
 
 public void setOptionsAndReset(final ScrOptions options);
 
