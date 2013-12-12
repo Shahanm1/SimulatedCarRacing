@@ -145,6 +145,11 @@ KeyListener {
 		
 		action.gear = gear;
 		System.out.println(action.accelerate);
+		double[] edge = m.getTrackEdgeSensors();
+		for(int i=0;i < edge.length; i++){
+			System.out.print(edge[i] + "  ");
+		}
+		System.out.println();
 		return action;
 
 	}

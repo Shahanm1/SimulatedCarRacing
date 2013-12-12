@@ -1,0 +1,24 @@
+50
+0
+100000
+3
+0.3
+0
+0
+4
+50
+3000
+0
+
+----
+Population size
+Genome size - UNUSED
+Num generations
+Tournament size
+Mutation value
+Fitness Rule: [1: minimize], [0: maximize]
+Test length - UNUSED
+Num servers
+FLUSH (generations per population printed)
+Starting server - 1
+PHASE (0: NSGA-2, 1:GA)
